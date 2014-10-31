@@ -12,9 +12,15 @@ import re
 # Import salt libs
 import salt.utils
 import salt.utils.decorators as decorators
-
 from salt.exceptions import CommandExecutionError
 from salt.ext.six.moves import zip
+from salt.utils.monitoring import check_thresholds
+
+
+__monitor__ = [
+    'check_usage',
+]
+
 
 log = logging.getLogger(__name__)
 
@@ -114,6 +120,77 @@ def usage(args=None):
         except IndexError:
             log.warn('Problem parsing disk usage information')
             ret = {}
+    return ret
+
+
+def check_usage(mountpoint, thresholds, **kwargs):
+    '''
+    Return monitoring information for a mount point.
+    '''
+    def _fmt(num, blocksize):
+        num = float(num) * blocksize
+        for x in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if num < 1024.0:
+                return "%0.1f %s" % (num, x)
+            num /= 1024.0
+
+    data = {}
+    for k, v in kwargs.items():
+        if k.startswith('__'):
+            continue
+        data[k] = v
+
+    data.update({'info': {},
+                 'metrics': {},
+                 'details': '',
+                 'name': mountpoint})
+    ret = {'result': False, 'data': data}
+
+    info = usage()
+
+    if mountpoint not in info:
+        data['details'] = 'Disk "({0})" not mounted.'.format(mountpoint)
+        return ret
+    info = info[mountpoint]
+    cap = int(info['capacity'].strip('%'))
+    
+    status, level, threshold, result = check_thresholds(cap, thresholds)
+
+    if threshold:
+        threshold = int(threshold)
+
+    warning = ''
+    if result is False:
+        if level == 'high':
+            warning = ' (above {0}% threshold)'.format(threshold)
+        elif level == 'low':
+            warning = ' (below {0}% threshold)'.format(threshold)
+
+    data['details'] = ('Disk "{0}" is at {1}% '
+                       'capacity{2}.').format(mountpoint, cap,
+                                              warning)
+    data['status'] = status
+
+    if level:
+        data['threshold'] = [level, threshold]
+
+    if __grains__['kernel'] == 'Darwin':
+        blocksize = 512
+        size = info['512-blocks']
+    else:
+        blocksize = 1024
+        size = info['1K-blocks']
+        
+    data['info'] = {'size': _fmt(size, blocksize),
+                    'used': _fmt(info['used'], blocksize),
+                    'available': _fmt(info['available'], blocksize),
+                    'capacity': info['capacity'],
+                    'filesystem': info['filesystem']}
+
+    data['metrics'] = {'size_kb': info['1K-blocks'],
+                       'used_kb': info['used'],
+                       'available_kb': info['available'],
+                       'percent_capacity': cap}
     return ret
 
 
