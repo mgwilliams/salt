@@ -7,12 +7,14 @@ Utils for use by monitoring system
 # Import python libs
 import re
 import logging
+import hashlib
 
 # Import salt libs
 from salt._compat import string_types
 
 
 log = logging.getLogger(__name__)
+change_db = '/var/lib/salt/minion/monitoring/'
 
 
 non_decimal = re.compile(r'[^\d.]+')
@@ -56,3 +58,20 @@ def check_thresholds(value, rules):
         if maximum and value > maximum:
             return (label, 'high', maximum, result)
     return ('other', None, None, False)
+
+
+def check_status(check, name, status, failure):
+    f = change_db + hashlib.md5(check + name).hexdigest()
+    try:
+        with open(f) as fn:
+            previous = fn.read()
+    except IOError:
+        previous = None
+
+    if status != previous:
+        with open(f, 'w') as fn:
+            fn.write(status)
+    return {'previous': previous,
+            'current': status,
+            'changed': previous != status,
+            'failure': failure}

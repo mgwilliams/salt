@@ -42,5 +42,7 @@ def status(name,
     ret['data'] = r['data']
     ret['result'] = r['result']
     ret['data']['check'] = 'disk.status'
+    if r['data']['status']['changed']:
+        ret['changes'] = {'status': r['data']['status']['current']}
     ret['comment'] = ret['data']['details']
     return ret

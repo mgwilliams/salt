@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Module for Firing Events via BigPanda.io
+Library for interacting with the BigPanda.io API
 '''
 
 # Import python libs
@@ -28,7 +28,6 @@ def alert(profile, host, check, status, description, details,
           failure=True, url=None):
     '''
     Send a BigPanda.io alert.
-    This function is intended to be used by the monitoring system.
     '''
     api_url = 'https://api.bigpanda.io/data/v2/alerts'
     headers = {'Authorization': 'Bearer {0}'.format(profile['api_token']),

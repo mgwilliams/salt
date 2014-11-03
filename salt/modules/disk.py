@@ -14,7 +14,7 @@ import salt.utils
 import salt.utils.decorators as decorators
 from salt.exceptions import CommandExecutionError
 from salt.ext.six.moves import zip
-from salt.utils.monitoring import check_thresholds
+from salt.utils.monitoring import check_thresholds, check_status
 
 
 __monitor__ = [
@@ -141,6 +141,7 @@ def check_usage(mountpoint, thresholds, **kwargs):
         data[k] = v
 
     data.update({'info': {},
+                 'status': {},
                  'metrics': {},
                  'details': '',
                  'name': mountpoint})
@@ -156,6 +157,8 @@ def check_usage(mountpoint, thresholds, **kwargs):
     
     status, level, threshold, result = check_thresholds(cap, thresholds)
 
+    ret['result'] = result
+
     if threshold:
         threshold = int(threshold)
 
@@ -169,7 +172,7 @@ def check_usage(mountpoint, thresholds, **kwargs):
     data['details'] = ('Disk "{0}" is at {1}% '
                        'capacity{2}.').format(mountpoint, cap,
                                               warning)
-    data['status'] = status
+    data['status'] = check_status('disk.check_status', mountpoint, status, (not result))
 
     if level:
         data['threshold'] = [level, threshold]
