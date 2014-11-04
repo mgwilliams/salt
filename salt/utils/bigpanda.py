@@ -14,9 +14,6 @@ from salt._compat import string_types
 import requests
 
 
-__virtualname__ = 'bigpanda'
-
-
 def __virtual__():
     '''
     No dependencies outside of what Salt itself requires
