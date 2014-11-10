@@ -154,7 +154,7 @@ def check_usage(mountpoint, thresholds, **kwargs):
         return ret
     info = info[mountpoint]
     cap = int(info['capacity'].strip('%'))
-    
+
     status, level, threshold, result = check_thresholds(cap, thresholds)
 
     ret['result'] = result
@@ -183,7 +183,7 @@ def check_usage(mountpoint, thresholds, **kwargs):
     else:
         blocksize = 1024
         size = info['1K-blocks']
-        
+
     data['info'] = {'size': _fmt(size, blocksize),
                     'used': _fmt(info['used'], blocksize),
                     'available': _fmt(info['available'], blocksize),

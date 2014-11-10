@@ -6,14 +6,45 @@ For configuration options, see the docs for specific sdb
 modules.
 '''
 from __future__ import absolute_import
+
+# Import python libs
+import logging
+from functools import partial
+
+# Import salt libs
 import salt.loader
 from salt.ext.six import string_types
 
 
+log = logging.getLogger(__name__)
+
+
+def sdb_funs(profile, opts):
+    '''
+    Retrieve the set and get functions for the named sdb profile.
+    '''
+    profile = opts.get(profile, {})
+    if 'driver' not in profile:
+        return (None, None)
+    getf = '{0}.get'.format(profile['driver'])
+    setf = '{0}.set'.format(profile['driver'])
+
+    loaded_db = salt.loader.sdb(opts, (getf, setf))
+
+    try:
+        getf = partial(loaded_db[getf], profile=profile)
+        setf = partial(loaded_db[setf], profile=profile)
+        return (getf, setf)
+    except KeyError:
+        log.error('sdb functions could not be loaded for profile: ' + profile)
+        raise
+
+
 def sdb_get(uri, opts):
     '''
-    Get a value from a db, using a uri in the form of ``sdb://<profile>/<key>``. If
-    the uri provided does not start with ``sdb://``, then it will be returned as-is.
+    Get a value from a db, using a uri in the form of
+    ``sdb://<profile>/<key>``. If the uri provided does not start with
+    ``sdb://``, then it will be returned as-is.
     '''
     if not isinstance(uri, string_types):
         return uri
